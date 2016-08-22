@@ -124,29 +124,34 @@ class BoostConan(ConanFile):
 
         command = "b2" if self.settings.os == "Windows" else "./b2"
         if self.settings.os == "Linux":
-            deps_options = self.prepare_deps_options()
+            opts = self.prepare_deps_options()
+            if (opts):
+                deps_options = opts   
+            else:
+                deps_options = ""
         else:
             deps_options = ""
             
-        full_command = "cd %s && %s %s -j4 --abbreviate-paths --without-python %s" % (self.FOLDER_NAME, command, b2_flags, deps_options)
+        zlib_vars = self.get_zlib_vars()
+        full_command = "cd %s && %s %s %s -j4 --abbreviate-paths --without-python %s" % (self.FOLDER_NAME, zlib_vars, command, b2_flags, deps_options)
         self.output.warn(full_command)
         self.run(full_command)#, output=False)
         
     def prepare_deps_options(self):
-        ret = ""
         if "bzip2" in self.requires:
             include_path = self.deps_cpp_info["bzip2"].include_paths[0]
             lib_path = self.deps_cpp_info["bzip2"].lib_paths[0]
             lib_name = self.deps_cpp_info["bzip2"].libs[0]
-            ret += "-s BZIP2_BINARY=%s -s BZIP2_INCLUDE=%s -s BZIP2_LIBPATH=%s" % (lib_name, include_path, lib_path)
-#    FIXME: I think ZLIB variables should be setted now as env variables. But compilation works anyway.
-#         if "zlib" in self.requires:
-#             include_path = self.deps_cpp_info["zlib"].include_paths[0]
-#             lib_path = self.deps_cpp_info["zlib"].lib_paths[0]
-#             lib_name = self.deps_cpp_info["zlib"].libs[0]
-#             ret += "-s ZLIB_BINARY=%s -s ZLIB_INCLUDE=%s -s ZLIB_LIBPATH=%s" % (lib_name, include_path, lib_path)
+            return "-s BZIP2_BINARY=%s -s BZIP2_INCLUDE=%s -s BZIP2_LIBPATH=%s" % (lib_name, include_path, lib_path)
 
-        return ret
+    def get_zlib_vars(self):
+#    FIXME: I think ZLIB variables should be setted now as env variables. But compilation works anyway.
+        if "zlib" in self.requires:
+            include_path = self.deps_cpp_info["zlib"].include_paths[0]
+            lib_path = self.deps_cpp_info["zlib"].lib_paths[0]
+            lib_name = self.deps_cpp_info["zlib"].libs[0]
+            return "ZLIB_BINARY=%s ZLIB_INCLUDE=%s ZLIB_LIBPATH=%s" % (lib_name, include_path, lib_path)
+
     def package(self):
         # Copy findZLIB.cmake to package
         self.copy("FindBoost.cmake", ".", ".")
